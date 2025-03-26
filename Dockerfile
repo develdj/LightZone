@@ -1,5 +1,5 @@
 # First stage: Build the application
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:17-jdk AS build
 
 # Set working directory
 WORKDIR /app
@@ -21,7 +21,7 @@ COPY . /app
 RUN ./gradlew build --no-daemon
 
 # Second stage: Create a minimal runtime image
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
