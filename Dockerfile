@@ -1,30 +1,31 @@
+# Use Eclipse Temurin JDK 17 for building
 FROM eclipse-temurin:17-jdk AS build
 
 WORKDIR /app
 
-# Copy necessary Gradle files for caching
+# Copy only necessary Gradle files first for better caching
 COPY gradlew settings.gradle.kts build.gradle.kts /app/
 COPY gradle/ /app/gradle/
 
 # Make Gradle wrapper executable
 RUN chmod +x gradlew
 
-# Copy the entire project
-COPY . .
+# Copy the rest of the application source code
+COPY src/ /app/src/
 
 # Build the application
 RUN ./gradlew build --no-daemon
 
-# Use a smaller base image for running the app
+# Use Eclipse Temurin JRE 17 for running
 FROM eclipse-temurin:17-jre AS runtime
 
 WORKDIR /app
 
-# Copy the built application from the build stage
-COPY --from=build /app/build/libs/*.jar /app/app.jar
+# Copy the built JAR file from the builder stage
+COPY --from=build /app/build/libs/*.jar app.jar
 
-# Expose the application port (modify if necessary)
+# Expose port 3200
 EXPOSE 3200
 
 # Run the application
-CMD ["java", "-jar", "/app/app.jar"]
+CMD ["java", "-jar", "app.jar"]
