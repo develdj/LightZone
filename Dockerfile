@@ -46,4 +46,5 @@ EXPOSE 3200
 ENV DISPLAY=:0
 
 # Run the application as a desktop app (assuming it launches a GUI)
+RUN apt-get install -y xvfb
 CMD ["java", "-jar", "app.jar"]
