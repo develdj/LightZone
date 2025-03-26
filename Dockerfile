@@ -16,12 +16,19 @@ RUN mkdir -p /app/gradle/wrapper
 RUN wget -O /app/gradlew https://raw.githubusercontent.com/gradle/gradle/v7.6.0/gradlew && \
     chmod +x /app/gradlew
 
-RUN wget -O /app/gradle/wrapper/gradle-wrapper.jar https://services.gradle.org/distributions/gradle-7.6-bin.jar
+# Use the full download URL for Gradle distribution
+RUN wget -O /app/gradle/wrapper/gradle-wrapper.jar https://downloads.gradle.org/distributions/gradle-7.6-bin.jar
 
-RUN echo "distributionUrl=https://services.gradle.org/distributions/gradle-7.6-bin.zip" > /app/gradle/wrapper/gradle-wrapper.properties
+RUN echo "distributionUrl=https://downloads.gradle.org/distributions/gradle-7.6-bin.zip" > /app/gradle/wrapper/gradle-wrapper.properties
 
 # Copy entire project
 COPY . /app
+
+# Create Gradle wrapper script if it doesn't exist
+RUN if [ ! -f /app/gradlew ]; then \
+    wget -O /app/gradlew https://raw.githubusercontent.com/gradle/gradle/v7.6.0/gradlew && \
+    chmod +x /app/gradlew; \
+    fi
 
 # Verify Gradle wrapper
 RUN /app/gradlew --version
