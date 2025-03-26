@@ -6,16 +6,33 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    wget \
     && apt-get clean
 
-# Copy entire project to ensure all necessary files are available
+# Copy Gradle wrapper files explicitly
+# If these files are not in your repository, we'll download them
+COPY gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.jar
+COPY gradle/wrapper/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.properties
+COPY gradlew /app/gradlew
+
+# If Gradle wrapper files are missing, uncomment and use these commands
+RUN if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then \
+    mkdir -p gradle/wrapper && \
+    wget -O gradle/wrapper/gradle-wrapper.jar https://services.gradle.org/distributions/gradle-7.6-bin.jar && \
+    echo "distributionUrl=https://services.gradle.org/distributions/gradle-7.6-bin.zip" > gradle/wrapper/gradle-wrapper.properties; \
+    fi
+
+# Ensure Gradle wrapper is executable
+RUN chmod +x /app/gradlew
+
+# Copy entire project
 COPY . /app
 
-# Make Gradle wrapper executable
-RUN chmod +x gradlew
+# Verify Gradle wrapper
+RUN /app/gradlew --version
 
 # Build the Linux version of the application using Gradle wrapper
-RUN ./gradlew build -p linux --no-daemon
+RUN /app/gradlew build -p linux --no-daemon --stacktrace
 
 # Use a minimal image to run the application with graphical support
 FROM ubuntu:22.04 AS runtime
