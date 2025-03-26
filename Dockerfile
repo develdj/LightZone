@@ -3,17 +3,26 @@ FROM eclipse-temurin:17-jdk AS build
 
 WORKDIR /app
 
+# Install Gradle (you can change the version if needed)
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    && wget https://services.gradle.org/distributions/gradle-7.6-bin.zip -P /tmp \
+    && unzip /tmp/gradle-7.6-bin.zip -d /opt/gradle \
+    && ln -s /opt/gradle/gradle-7.6/bin/gradle /usr/local/bin/gradle \
+    && rm /tmp/gradle-7.6-bin.zip
+
 # Copy necessary Gradle files for building (including those under linux directory)
 COPY gradlew settings.gradle.kts linux/build.gradle.kts /app/
 
-# Make Gradle wrapper executable
+# Make Gradle wrapper executable if it exists (or use Gradle directly)
 RUN chmod +x gradlew
 
 # Copy the source code from the linux directory
 COPY linux/ /app/linux/
 
-# Build the Linux version of the application
-RUN ./gradlew build -p linux --no-daemon
+# Build the Linux version of the application using Gradle
+RUN gradle build -p linux --no-daemon
 
 # Use a minimal image to run the application with graphical support
 FROM ubuntu:22.04 AS runtime
@@ -46,4 +55,5 @@ EXPOSE 3200
 # Set environment variables for running a desktop application (X11)
 ENV DISPLAY=:0
 
-# Run the application as a desktop app (assuming
+# Run the application as a desktop app (assuming it launches a GUI)
+CMD ["xvfb-run", "java", "-jar", "app.jar"]
