@@ -9,21 +9,16 @@ RUN apt-get update && apt-get install -y \
     wget \
     && apt-get clean
 
-# Copy Gradle wrapper files explicitly
-# If these files are not in your repository, we'll download them
-COPY gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.jar
-COPY gradle/wrapper/gradle-wrapper.properties gradle/wrapper/gradle-wrapper.properties
-COPY gradlew /app/gradlew
+# Create Gradle wrapper directories
+RUN mkdir -p /app/gradle/wrapper
 
-# If Gradle wrapper files are missing, uncomment and use these commands
-RUN if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then \
-    mkdir -p gradle/wrapper && \
-    wget -O gradle/wrapper/gradle-wrapper.jar https://services.gradle.org/distributions/gradle-7.6-bin.jar && \
-    echo "distributionUrl=https://services.gradle.org/distributions/gradle-7.6-bin.zip" > gradle/wrapper/gradle-wrapper.properties; \
-    fi
+# Download Gradle wrapper if not present
+RUN wget -O /app/gradlew https://raw.githubusercontent.com/gradle/gradle/v7.6.0/gradlew && \
+    chmod +x /app/gradlew
 
-# Ensure Gradle wrapper is executable
-RUN chmod +x /app/gradlew
+RUN wget -O /app/gradle/wrapper/gradle-wrapper.jar https://services.gradle.org/distributions/gradle-7.6-bin.jar
+
+RUN echo "distributionUrl=https://services.gradle.org/distributions/gradle-7.6-bin.zip" > /app/gradle/wrapper/gradle-wrapper.properties
 
 # Copy entire project
 COPY . /app
