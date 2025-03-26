@@ -1,28 +1,21 @@
 # Base image with JDK 17 for building the application
 FROM eclipse-temurin:17-jdk AS build
-
 WORKDIR /app
 
-# Install Gradle (you can change the version if needed)
+# Install necessary build dependencies
 RUN apt-get update && apt-get install -y \
-    wget \
+    git \
     unzip \
-    && wget https://services.gradle.org/distributions/gradle-7.6-bin.zip -P /tmp \
-    && unzip /tmp/gradle-7.6-bin.zip -d /opt/gradle \
-    && ln -s /opt/gradle/gradle-7.6/bin/gradle /usr/local/bin/gradle \
-    && rm /tmp/gradle-7.6-bin.zip
+    && apt-get clean
 
-# Copy necessary Gradle files for building (including those under linux directory)
-COPY gradlew settings.gradle.kts linux/build.gradle.kts /app/
+# Copy entire project to ensure all necessary files are available
+COPY . /app
 
-# Make Gradle wrapper executable if it exists (or use Gradle directly)
+# Make Gradle wrapper executable
 RUN chmod +x gradlew
 
-# Copy the source code from the linux directory
-COPY linux/ /app/linux/
-
-# Build the Linux version of the application using Gradle
-RUN gradle build -p linux --no-daemon
+# Build the Linux version of the application using Gradle wrapper
+RUN ./gradlew build -p linux --no-daemon
 
 # Use a minimal image to run the application with graphical support
 FROM ubuntu:22.04 AS runtime
@@ -41,6 +34,7 @@ RUN apt-get update && apt-get install -y \
     libraw-dev \
     libsdl2-2.0-0 \
     xvfb \
+    openjdk-17-jre \
     && apt-get clean
 
 # Set working directory
