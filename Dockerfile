@@ -3,8 +3,8 @@ FROM eclipse-temurin:17-jdk AS build
 
 WORKDIR /app
 
-# Copy necessary Gradle files for building
-COPY gradlew settings.gradle.kts build.gradle.kts /app/
+# Copy necessary Gradle files for building (including those under linux directory)
+COPY gradlew settings.gradle.kts linux/build.gradle.kts /app/
 
 # Make Gradle wrapper executable
 RUN chmod +x gradlew
@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libraw-dev \
     libsdl2-2.0-0 \
+    xvfb \
     && apt-get clean
 
 # Set working directory
@@ -45,6 +46,4 @@ EXPOSE 3200
 # Set environment variables for running a desktop application (X11)
 ENV DISPLAY=:0
 
-# Run the application as a desktop app (assuming it launches a GUI)
-RUN apt-get install -y xvfb
-CMD ["java", "-jar", "app.jar"]
+# Run the application as a desktop app (assuming
