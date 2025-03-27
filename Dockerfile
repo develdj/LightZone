@@ -75,7 +75,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Clone the repo (or alternatively, copy the start.sh from your local files)
-RUN git clone https://github.com/yourusername/yourrepo.git /app
+RUN git clone https://github.com/develdj/LightZone.git /app
 
 # Set the start script permissions
 RUN chmod +x /app/start.sh
