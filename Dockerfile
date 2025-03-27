@@ -15,15 +15,22 @@ RUN apt-get update && apt-get install -y \
     libraw-dev libtiff-dev libx11-dev libxml2-utils pkg-config rsync \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Ensure Java is properly configured
+RUN update-alternatives --set java ${JAVA_HOME}/bin/java \
+    && update-alternatives --set javac ${JAVA_HOME}/bin/javac
+
+# Verify Java & Ant
+RUN echo "Java & Ant Verification" \
+    && echo "JAVA_HOME is set to: $JAVA_HOME" \
+    && ls -l $JAVA_HOME/bin/java \
+    && java -version && javac -version \
+    && export JAVA_HOME=${JAVA_HOME} && ant -version
+
 # Set working directory
 WORKDIR /app
 
 # Copy project files
 COPY . /app
-
-# Verify Java & Ant
-RUN echo "Java & Ant Verification" \
-    && java -version && javac -version && ant -version
 
 # Build application
 RUN cd lightcrafts && ant -f build.xml -v
