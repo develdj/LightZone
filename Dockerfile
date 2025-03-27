@@ -1,22 +1,8 @@
-# Base image with JDK 17 for building the application
-FROM ubuntu:22.04 AS build
-
-# Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV ANT_HOME=/usr/share/ant
-ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:${PATH}"
-
-# Install required build dependencies
-RUN apt-get update && apt-get install -y \
-    debhelper \
-    devscripts \
+# Install additional build dependencies
+RUN apt-get install -y \
     build-essential \
-    ant \
     git \
     javahelp2 \
-    default-jdk \
-    default-jre-headless \
     libglib2.0-dev \
     liblcms2-dev \
     liblensfun-dev \
@@ -27,8 +13,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-utils \
     pkg-config \
     rsync \
-    curl \
-    wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,16 +22,12 @@ WORKDIR /app
 # Copy project files
 COPY . /app
 
-# Debug: Check Ant version and Java version
-RUN java -version && ant -version
+# Verify Java and Ant installation
+RUN which java && java -version \
+    && which ant && ant -version
 
-# Debug: Check project structure and build files
-RUN ls -la linux && ls -la linux/build.xml
-
-# Build the application with verbose output and error handling
-RUN set -e && \
-    cd linux && \
-    ant -v -f build.xml || (echo "Ant build failed" && exit 1)
+# Build the application
+RUN cd lightcrafts && ant -v -f build.xml
 
 # Create runtime image
 FROM ubuntu:22.04 AS runtime
@@ -70,7 +50,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy built artifacts from build stage
-COPY --from=build /app/linux/build/libs/*.jar app.jar
+COPY --from=build /app/lightcrafts/build/libs/*.jar app.jar
 
 # Expose port if needed
 EXPOSE 3200
