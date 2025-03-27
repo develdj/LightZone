@@ -18,11 +18,18 @@ RUN apt-get update && apt-get install -y \
     openjdk-17-jdk \
     openjdk-17-jre
 
-# Install Ant
+# Verify Java installation
+RUN update-alternatives --list java \
+    && update-alternatives --display java \
+    && which java \
+    && ls -la /usr/lib/jvm
+
+# Install Ant manually
 RUN wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.14-bin.tar.gz \
     && tar -xzf apache-ant-1.10.14-bin.tar.gz \
     && mv apache-ant-1.10.14 /opt/ant \
-    && rm apache-ant-1.10.14-bin.tar.gz
+    && rm apache-ant-1.10.14-bin.tar.gz \
+    && ln -s /opt/ant/bin/ant /usr/local/bin/ant
 
 # Install comprehensive build dependencies
 RUN apt-get install -y \
@@ -49,11 +56,15 @@ WORKDIR /app
 COPY . /app
 
 # Extensive debugging and verification
-RUN echo "Java Version:" && java -version 2>&1 \
-    && echo "Ant Version:" && ant -version 2>&1 \
-    && echo "Java Home: $JAVA_HOME" \
-    && echo "Ant Home: $ANT_HOME" \
+RUN echo "Java Installation Check:" \
+    && echo "JAVA_HOME: $JAVA_HOME" \
+    && echo "Java Executable:" && which java \
+    && java -version \
+    && echo "Ant Installation Check:" \
+    && which ant \
+    && ant -version \
     && echo "PATH: $PATH" \
+    && echo "Listing /app/lightcrafts:" \
     && ls -la /app/lightcrafts
 
 # Attempt to build with extensive logging
@@ -62,7 +73,6 @@ RUN cd lightcrafts \
     && ls -la \
     && echo "Attempting to build with verbose output..." \
     && ant -v -debug -f build.xml || (echo "Build failed. Collecting debug information..." \
-    && cat build.log \
     && exit 1)
 
 # Create runtime image
