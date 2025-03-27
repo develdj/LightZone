@@ -5,34 +5,42 @@ FROM ubuntu:22.04 AS build
 ENV DEBIAN_FRONTEND=noninteractive
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV ANT_HOME=/opt/ant
-ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:${PATH}"
+ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:/usr/local/bin:${PATH}"
 
-# Install core dependencies and OpenJDK
+# Install core dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     unzip \
+    ca-certificates \
     software-properties-common \
-    && add-apt-repository ppa:openjdk-r/ppa \
-    && apt-get update \
-    && apt-get install -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install OpenJDK 17
+RUN apt-get update && apt-get install -y \
     openjdk-17-jdk \
-    openjdk-17-jre
+    openjdk-17-jre \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Verify Java installation
-RUN update-alternatives --list java \
-    && update-alternatives --display java \
-    && which java \
-    && ls -la /usr/lib/jvm
+RUN mkdir -p /usr/share/man/man1 \
+    && find /usr/lib/jvm -name "java" \
+    && update-alternatives --list java \
+    && java -version 2>&1 \
+    && javac -version 2>&1
 
 # Install Ant manually
 RUN wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.14-bin.tar.gz \
     && tar -xzf apache-ant-1.10.14-bin.tar.gz \
     && mv apache-ant-1.10.14 /opt/ant \
     && rm apache-ant-1.10.14-bin.tar.gz \
-    && ln -s /opt/ant/bin/ant /usr/local/bin/ant
+    && ln -sf /opt/ant/bin/ant /usr/local/bin/ant \
+    && chmod +x /usr/local/bin/ant
 
 # Install comprehensive build dependencies
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     javahelp2 \
@@ -56,12 +64,14 @@ WORKDIR /app
 COPY . /app
 
 # Extensive debugging and verification
-RUN echo "Java Installation Check:" \
+RUN echo "Java and Ant Verification:" \
     && echo "JAVA_HOME: $JAVA_HOME" \
+    && echo "ANT_HOME: $ANT_HOME" \
     && echo "Java Executable:" && which java \
     && java -version \
-    && echo "Ant Installation Check:" \
-    && which ant \
+    && echo "Javac Executable:" && which javac \
+    && javac -version \
+    && echo "Ant Executable:" && which ant \
     && ant -version \
     && echo "PATH: $PATH" \
     && echo "Listing /app/lightcrafts:" \
@@ -73,6 +83,7 @@ RUN cd lightcrafts \
     && ls -la \
     && echo "Attempting to build with verbose output..." \
     && ant -v -debug -f build.xml || (echo "Build failed. Collecting debug information..." \
+    && cat build.log \
     && exit 1)
 
 # Create runtime image
