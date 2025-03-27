@@ -7,55 +7,13 @@ ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV ANT_HOME=/opt/ant
 ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:/usr/local/bin:${PATH}"
 
-# Install core dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    unzip \
-    ca-certificates \
-    software-properties-common \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install OpenJDK 17
-RUN apt-get update && apt-get install -y \
-    openjdk-17-jdk \
-    openjdk-17-jre \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Verify Java installation
-RUN mkdir -p /usr/share/man/man1 \
-    && find /usr/lib/jvm -name "java" \
-    && update-alternatives --list java \
-    && java -version 2>&1 \
-    && javac -version 2>&1
-
-# Install Ant manually
-RUN wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.14-bin.tar.gz \
-    && tar -xzf apache-ant-1.10.14-bin.tar.gz \
-    && mv apache-ant-1.10.14 /opt/ant \
-    && rm apache-ant-1.10.14-bin.tar.gz \
-    && ln -sf /opt/ant/bin/ant /usr/local/bin/ant \
-    && chmod +x /usr/local/bin/ant
-
-# Install comprehensive build dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    javahelp2 \
-    libglib2.0-dev \
-    liblcms2-dev \
-    liblensfun-dev \
-    libjpeg-dev \
-    libraw-dev \
-    libtiff-dev \
-    libx11-dev \
-    libxml2-utils \
-    pkg-config \
-    rsync \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget curl unzip ca-certificates software-properties-common \
+    openjdk-17-jdk ant build-essential git javahelp2 \
+    libglib2.0-dev liblcms2-dev liblensfun-dev libjpeg-dev \
+    libraw-dev libtiff-dev libx11-dev libxml2-utils pkg-config rsync \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -63,57 +21,33 @@ WORKDIR /app
 # Copy project files
 COPY . /app
 
-# Extensive debugging and verification
-RUN echo "Java and Ant Verification:" \
-    && echo "JAVA_HOME: $JAVA_HOME" \
-    && echo "ANT_HOME: $ANT_HOME" \
-    && echo "Java Executable:" && which java \
-    && java -version \
-    && echo "Javac Executable:" && which javac \
-    && javac -version \
-    && echo "Ant Executable:" && which ant \
-    && ant -version \
-    && echo "PATH: $PATH" \
-    && echo "Listing /app/lightcrafts:" \
-    && ls -la /app/lightcrafts
+# Verify Java & Ant
+RUN echo "Java & Ant Verification" \
+    && java -version && javac -version && ant -version
 
-# Attempt to build with extensive logging
-RUN cd lightcrafts \
-    && echo "Current directory contents:" \
-    && ls -la \
-    && echo "Attempting to build with verbose output..." \
-    && ant -v -debug -f build.xml || (echo "Build failed. Collecting debug information..." \
-    && cat build.log \
-    && exit 1)
+# Build application
+RUN cd lightcrafts && ant -f build.xml -v
 
-# Create runtime image
+# Runtime image
 FROM ubuntu:22.04 AS runtime
 
-# Install runtime dependencies
+# Install only required runtime dependencies
 RUN apt-get update && apt-get install -y \
-    openjdk-17-jre \
-    libx11-6 \
-    libglib2.0-0 \
-    liblcms2-2 \
-    liblensfun1 \
-    libjpeg8 \
-    libraw20 \
-    libtiff5 \
-    xvfb \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    openjdk-17-jre libx11-6 libglib2.0-0 liblcms2-2 \
+    liblensfun1 libjpeg8 libraw20 libtiff5 xvfb \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy built artifacts from build stage
+# Copy built artifacts
 COPY --from=build /app/lightcrafts/build/libs/*.jar app.jar
 
-# Expose port if needed
+# Expose required port (if applicable)
 EXPOSE 3200
 
-# Set environment variables for running a desktop application
+# Set display environment variable for GUI apps
 ENV DISPLAY=:0
 
-# Run the application
+# Run application in an interactive manner
 CMD ["xvfb-run", "java", "-jar", "app.jar"]
