@@ -4,6 +4,8 @@ FROM ubuntu:22.04 AS build
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV ANT_HOME=/usr/share/ant
+ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:${PATH}"
 
 # Install required build dependencies
 RUN apt-get update && apt-get install -y \
@@ -26,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     rsync \
     curl \
+    wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,11 +38,16 @@ WORKDIR /app
 # Copy project files
 COPY . /app
 
-# Set up build environment
-RUN export JAVA_HOME=${JAVA_HOME}
+# Debug: Check Ant version and Java version
+RUN java -version && ant -version
 
-# Build the application
-RUN ant -f linux/build.xml
+# Debug: Check project structure and build files
+RUN ls -la linux && ls -la linux/build.xml
+
+# Build the application with verbose output and error handling
+RUN set -e && \
+    cd linux && \
+    ant -v -f build.xml || (echo "Ant build failed" && exit 1)
 
 # Create runtime image
 FROM ubuntu:22.04 AS runtime
