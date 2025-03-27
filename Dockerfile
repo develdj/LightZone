@@ -1,4 +1,30 @@
-# Install additional build dependencies
+# Base image with build tools
+FROM ubuntu:22.04 AS build
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV ANT_HOME=/opt/ant
+ENV PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:${PATH}"
+
+# Install core dependencies and OpenJDK
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    software-properties-common \
+    && add-apt-repository ppa:openjdk-r/ppa \
+    && apt-get update \
+    && apt-get install -y \
+    openjdk-17-jdk \
+    openjdk-17-jre
+
+# Install Ant
+RUN wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.14-bin.tar.gz \
+    && tar -xzf apache-ant-1.10.14-bin.tar.gz \
+    && mv apache-ant-1.10.14 /opt/ant \
+    && rm apache-ant-1.10.14-bin.tar.gz
+
+# Install comprehensive build dependencies
 RUN apt-get install -y \
     build-essential \
     git \
@@ -22,12 +48,22 @@ WORKDIR /app
 # Copy project files
 COPY . /app
 
-# Verify Java and Ant installation
-RUN which java && java -version \
-    && which ant && ant -version
+# Extensive debugging and verification
+RUN echo "Java Version:" && java -version 2>&1 \
+    && echo "Ant Version:" && ant -version 2>&1 \
+    && echo "Java Home: $JAVA_HOME" \
+    && echo "Ant Home: $ANT_HOME" \
+    && echo "PATH: $PATH" \
+    && ls -la /app/lightcrafts
 
-# Build the application
-RUN cd lightcrafts && ant -v -f build.xml
+# Attempt to build with extensive logging
+RUN cd lightcrafts \
+    && echo "Current directory contents:" \
+    && ls -la \
+    && echo "Attempting to build with verbose output..." \
+    && ant -v -debug -f build.xml || (echo "Build failed. Collecting debug information..." \
+    && cat build.log \
+    && exit 1)
 
 # Create runtime image
 FROM ubuntu:22.04 AS runtime
