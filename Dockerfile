@@ -14,10 +14,12 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-dev liblcms2-dev liblensfun-dev libjpeg-dev \
     libraw-dev libtiff-dev libx11-dev libxml2-utils pkg-config rsync \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 # Ensure Java is properly configured
-RUN update-alternatives --set java ${JAVA_HOME}/bin/java \
-    && update-alternatives --set javac ${JAVA_HOME}/bin/javac
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 1 \
+    && update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac 1 \
+    && update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java \
+    && update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
+
 
 # Verify Java & Ant
 RUN echo "Java & Ant Verification" \
